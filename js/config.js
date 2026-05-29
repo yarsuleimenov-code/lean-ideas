@@ -1,5 +1,5 @@
 export const CONFIG = {
-  WEB_APP_URL: 'https://script.google.com/macros/library/d/13jV8v1v6bMSzsYtLsHJSiR4E5kkHqEYLEuO54FF1y1Y15a9Zz-jf_wRX/1',
+  WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbzb1YF_Dt9WNl8B1_PlY2HGjNXJu0qJKmH-vMIy6rlgQt7FlSZtgiR-_4YCEbFWfgo/exec',
   ADMIN_TOKEN_STORAGE_KEY: 'zaberman_lean_admin_token',
   REQUEST_TIMEOUT_MS: 30000,
   TEXT_LIMITS: {
