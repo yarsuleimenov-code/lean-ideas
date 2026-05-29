@@ -15,6 +15,51 @@ function timeoutSignal(timeoutMs) {
 export async function callApi(action, payload = {}) {
   assertConfigured();
 
+  return callJsonp(action, payload);
+}
+
+function callJsonp(action, payload = {}) {
+  return new Promise((resolve, reject) => {
+    const callbackName = `leanIdeasCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement('script');
+    const timer = window.setTimeout(() => {
+      cleanup();
+      reject(new Error('Превышено время ожидания ответа сервера'));
+    }, CONFIG.REQUEST_TIMEOUT_MS);
+
+    function cleanup() {
+      window.clearTimeout(timer);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (result) => {
+      cleanup();
+      if (!result.ok) {
+        reject(new Error(result.error || 'Запрос не выполнен'));
+        return;
+      }
+      resolve(result);
+    };
+
+    const url = new URL(CONFIG.WEB_APP_URL);
+    url.searchParams.set('action', action);
+    url.searchParams.set('callback', callbackName);
+    url.searchParams.set('payload', JSON.stringify(payload));
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('Не удалось получить ответ Google Apps Script'));
+    };
+
+    script.src = url.toString();
+    document.head.append(script);
+  });
+}
+
+export async function callApiPost(action, payload = {}) {
+  assertConfigured();
+
   const { controller, timer } = timeoutSignal(CONFIG.REQUEST_TIMEOUT_MS);
 
   try {

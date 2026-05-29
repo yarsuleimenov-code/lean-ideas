@@ -30,7 +30,11 @@ const PUBLIC_HEADERS = [
   'Category',
   'Status',
   'Problem',
-  'Proposed Solution'
+  'Proposed Solution',
+  'Expected Impact',
+  'Implemented Date',
+  'Implemented Result',
+  'Manager Comment'
 ];
 
 const UPDATE_HEADERS = [
@@ -113,7 +117,8 @@ function doGet(e) {
   const callback = sanitizeText_(params.callback, 80);
 
   try {
-    const result = route_(action, params);
+    const payload = parseGetPayload_(params);
+    const result = route_(action, payload);
     return output_(result, callback);
   } catch (error) {
     return output_({ ok: false, error: error.message }, callback);
@@ -169,6 +174,12 @@ function parseBody_(e) {
   }, {});
 }
 
+function parseGetPayload_(params) {
+  const payload = params.payload ? JSON.parse(params.payload) : {};
+  payload.action = sanitizeText_(params.action, 80);
+  return payload;
+}
+
 function output_(payload, callback) {
   if (callback) {
     const safeCallback = callback.replace(/[^\w.$]/g, '');
@@ -210,66 +221,103 @@ function getSheet_() {
 }
 
 function ensureHeaders_(sheet) {
-  const range = sheet.getRange(1, 1, 1, HEADERS.length);
-  const values = range.getValues()[0];
+  const lastColumn = Math.max(sheet.getLastColumn(), HEADERS.length);
+  const range = sheet.getRange(1, 1, 1, lastColumn);
+  const values = range.getValues()[0].map(function(value) {
+    return String(value || '').trim();
+  });
   const isEmpty = values.every(function(value) { return !value; });
 
   if (isEmpty) {
-    range.setValues([HEADERS]);
+    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
     sheet.setFrozenRows(1);
     return;
   }
 
-  const missing = HEADERS.some(function(header, index) {
-    return values[index] !== header;
+  const prefixCanBeCompleted = values.slice(0, HEADERS.length).every(function(value, index) {
+    return !value || value === HEADERS[index];
   });
 
-  if (missing) {
-    range.setValues([HEADERS]);
+  if (prefixCanBeCompleted) {
+    if (sheet.getMaxColumns() < HEADERS.length) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), HEADERS.length - sheet.getMaxColumns());
+    }
+
+    HEADERS.forEach(function(header, index) {
+      if (!values[index]) {
+        sheet.getRange(1, index + 1).setValue(header);
+      }
+    });
+
     sheet.setFrozenRows(1);
+    return;
   }
+
+  const differences = HEADERS.reduce(function(result, header, index) {
+    const actual = values[index] || '(пусто)';
+    if (actual !== header) {
+      result.push('колонка ' + (index + 1) + ': ожидается "' + header + '", сейчас "' + actual + '"');
+    }
+    return result;
+  }, []);
+
+  const extraHeaders = values.slice(HEADERS.length).filter(function(value) {
+    return value;
+  });
+
+  if (extraHeaders.length) {
+    differences.push('дополнительные колонки после основной структуры: ' + extraHeaders.join(', '));
+  }
+
+  throw new Error('Структура листа "' + SHEET_NAME + '" отличается от ожидаемой. Исправьте заголовки вручную: ' + differences.join('; '));
 }
 
 function submitInitiative_(data) {
   const item = normalizeSubmission_(data || {});
-  const sheet = getSheet_();
-  const id = generateId_();
-  const now = new Date();
+  let rowObject;
+  let createdId;
 
-  const rowObject = {
-    'ID': id,
-    'Created At': now,
-    'Category': item.category,
-    'Current Situation': item.currentSituation,
-    'Problem': item.problem,
-    'Proposed Solution': item.proposedSolution,
-    'Expected Impact': item.expectedImpact,
-    'Frequency': item.frequency,
-    'Contact': item.contact,
-    'Status': 'New',
-    'Impact Score': FREQUENCY_SCORE[item.frequency],
-    'Business Priority': '',
-    'Owner': '',
-    'Review Date': '',
-    'Implemented Date': '',
-    'Decision': '',
-    'Rejected Reason': '',
-    'Duplicate Of': '',
-    'Implemented Result': '',
-    'Manager Comment': '',
-    'Source': 'Manual Form'
-  };
+  withScriptLock_('создания инициативы', function() {
+    const sheet = getSheet_();
+    const id = generateId_();
+    const now = new Date();
+    createdId = id;
 
-  sheet.appendRow(HEADERS.map(function(header) {
-    return rowObject[header];
-  }));
+    rowObject = {
+      'ID': id,
+      'Created At': now,
+      'Category': item.category,
+      'Current Situation': item.currentSituation,
+      'Problem': item.problem,
+      'Proposed Solution': item.proposedSolution,
+      'Expected Impact': item.expectedImpact,
+      'Frequency': item.frequency,
+      'Contact': item.contact,
+      'Status': 'New',
+      'Impact Score': FREQUENCY_SCORE[item.frequency],
+      'Business Priority': '',
+      'Owner': '',
+      'Review Date': '',
+      'Implemented Date': '',
+      'Decision': '',
+      'Rejected Reason': '',
+      'Duplicate Of': '',
+      'Implemented Result': '',
+      'Manager Comment': '',
+      'Source': 'Manual Form'
+    };
+
+    sheet.appendRow(HEADERS.map(function(header) {
+      return rowObject[header];
+    }));
+  });
 
   sendTelegramNotification_(rowObject);
 
   return {
     ok: true,
     data: {
-      id: id
+      id: createdId
     }
   };
 }
@@ -307,38 +355,57 @@ function updateInitiative_(id, updates) {
     throw new Error('Не указан ID инициативы');
   }
 
-  const sheet = getSheet_();
-  const values = sheet.getDataRange().getValues();
-  const headerIndex = headerIndex_();
-  let rowNumber = -1;
+  return withScriptLock_('обновления инициативы', function() {
+    const sheet = getSheet_();
+    const values = sheet.getDataRange().getValues();
+    const headerIndex = headerIndex_();
+    let rowNumber = -1;
 
-  for (let i = 1; i < values.length; i += 1) {
-    if (String(values[i][headerIndex.ID]).trim() === cleanId) {
-      rowNumber = i + 1;
-      break;
+    for (let i = 1; i < values.length; i += 1) {
+      if (String(values[i][headerIndex.ID]).trim() === cleanId) {
+        rowNumber = i + 1;
+        break;
+      }
     }
-  }
 
-  if (rowNumber < 0) {
-    throw new Error('Инициатива не найдена');
-  }
-
-  const normalized = normalizeUpdates_(updates || {});
-
-  UPDATE_HEADERS.forEach(function(header) {
-    if (Object.prototype.hasOwnProperty.call(normalized, header)) {
-      sheet.getRange(rowNumber, headerIndex[header] + 1).setValue(normalized[header]);
+    if (rowNumber < 0) {
+      throw new Error('Инициатива не найдена');
     }
+
+    const normalized = normalizeUpdates_(updates || {});
+
+    UPDATE_HEADERS.forEach(function(header) {
+      if (Object.prototype.hasOwnProperty.call(normalized, header)) {
+        sheet.getRange(rowNumber, headerIndex[header] + 1).setValue(normalized[header]);
+      }
+    });
+
+    const item = rowToObject_(sheet.getRange(rowNumber, 1, 1, HEADERS.length).getValues()[0]);
+
+    return {
+      ok: true,
+      data: {
+        item: item
+      }
+    };
   });
+}
 
-  const item = rowToObject_(sheet.getRange(rowNumber, 1, 1, HEADERS.length).getValues()[0]);
+function withScriptLock_(operationName, callback) {
+  const lock = LockService.getScriptLock();
+  let locked = false;
 
-  return {
-    ok: true,
-    data: {
-      item: item
+  try {
+    lock.waitLock(30000);
+    locked = true;
+    return callback();
+  } catch (error) {
+    throw new Error('Не удалось выполнить операцию "' + operationName + '". Повторите запрос. Детали: ' + error.message);
+  } finally {
+    if (locked) {
+      lock.releaseLock();
     }
-  };
+  }
 }
 
 function normalizeSubmission_(data) {

@@ -6,6 +6,10 @@ const boardMessage = document.querySelector('#boardMessage');
 const statusFilter = document.querySelector('#statusFilter');
 const categoryFilter = document.querySelector('#categoryFilter');
 const refreshButton = document.querySelector('#refreshButton');
+const publicModal = document.querySelector('#publicModal');
+const modalTitle = document.querySelector('#modalTitle');
+const modalContent = document.querySelector('#modalContent');
+const closeModalButton = document.querySelector('#closeModalButton');
 
 let initiatives = [];
 
@@ -42,6 +46,52 @@ function appendText(parent, tag, className, text) {
   return element;
 }
 
+function addDetailBlock(title, text) {
+  if (!text) return;
+
+  const block = document.createElement('section');
+  block.className = 'rounded-lg border border-slate-200 bg-slate-50 p-4';
+  appendText(block, 'h3', 'text-sm font-black uppercase tracking-wide text-slate-500', title);
+  appendText(block, 'p', 'mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800', text);
+  modalContent.append(block);
+}
+
+function openDetails(id) {
+  const item = initiatives.find((initiative) => initiative.ID === id);
+  if (!item) return;
+
+  modalTitle.textContent = item.ID;
+  modalContent.replaceChildren();
+
+  const meta = document.createElement('div');
+  meta.className = 'flex flex-wrap items-center gap-2';
+  const badge = document.createElement('span');
+  badge.className = statusClass(item.Status);
+  badge.textContent = STATUS_LABELS[item.Status] || item.Status;
+  meta.append(badge);
+  appendText(meta, 'span', 'text-sm font-bold text-slate-500', formatDate(item['Created At']));
+  appendText(meta, 'span', 'text-sm font-black text-emerald-700', item.Category);
+  modalContent.append(meta);
+
+  addDetailBlock('Проблема', item.Problem);
+  addDetailBlock('Предложенное решение', item['Proposed Solution']);
+  addDetailBlock('Ожидаемый эффект', item['Expected Impact']);
+
+  if (item.Status === 'Implemented') {
+    addDetailBlock('Дата внедрения', formatDate(item['Implemented Date']));
+    addDetailBlock('Что сделано', item['Implemented Result']);
+    addDetailBlock('Комментарий менеджера', item['Manager Comment']);
+  }
+
+  publicModal.classList.remove('hidden');
+}
+
+function closeDetails() {
+  publicModal.classList.add('hidden');
+  modalTitle.textContent = '';
+  modalContent.replaceChildren();
+}
+
 function createCard(item) {
   const article = document.createElement('article');
   article.className = 'rounded-lg border border-slate-200 bg-white p-5 shadow-sm';
@@ -63,6 +113,18 @@ function createCard(item) {
 
   appendText(article, 'h3', 'mt-4 text-base font-black text-slate-950', 'Решение');
   appendText(article, 'p', 'mt-2 line-clamp-3 text-sm leading-6 text-slate-700', item['Proposed Solution']);
+
+  if (item.Status === 'Implemented' && item['Implemented Result']) {
+    appendText(article, 'h3', 'mt-4 text-base font-black text-slate-950', 'Что сделано');
+    appendText(article, 'p', 'mt-2 line-clamp-3 text-sm leading-6 text-slate-700', item['Implemented Result']);
+  }
+
+  const button = document.createElement('button');
+  button.className = 'btn-secondary mt-5 w-full';
+  button.type = 'button';
+  button.textContent = 'Открыть карточку';
+  button.addEventListener('click', () => openDetails(item.ID));
+  article.append(button);
 
   return article;
 }
@@ -117,5 +179,9 @@ fillSelect(categoryFilter, CATEGORIES, 'Все категории');
 statusFilter.addEventListener('change', render);
 categoryFilter.addEventListener('change', render);
 refreshButton.addEventListener('click', loadBoard);
+closeModalButton.addEventListener('click', closeDetails);
+publicModal.addEventListener('click', (event) => {
+  if (event.target.classList.contains('modal-backdrop')) closeDetails();
+});
 
 loadBoard();
