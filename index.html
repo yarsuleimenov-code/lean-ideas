@@ -1,1 +1,103 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Предложение по улучшению</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="border-b border-slate-200 bg-white">
+        <div class="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <a href="index.html" class="text-xl font-black text-slate-900">Lean Ideas Zaberman</a>
+          <nav class="flex flex-wrap gap-2 text-sm font-bold">
+            <a class="rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100" href="board.html">Публичная доска</a>
+            <a class="rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100" href="admin.html">Администратор</a>
+          </nav>
+        </div>
+      </header>
 
+      <main class="mx-auto max-w-5xl px-4 py-8">
+        <section class="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
+          <div class="space-y-4">
+            <p class="text-sm font-black uppercase tracking-wide text-emerald-700">Единый банк инициатив</p>
+            <h1 class="text-3xl font-black leading-tight text-slate-950 sm:text-4xl">Предложение по улучшению</h1>
+            <p class="text-lg leading-8 text-slate-700">
+              Если вы видите возможность улучшить процесс, автоматизировать работу, создать новый отчет,
+              повысить качество данных или сократить потери времени, оформите инициативу через форму ниже.
+            </p>
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
+              Вы можете отправить инициативу анонимно. Контакт нужен только если вы хотите участвовать в дальнейшем обсуждении.
+            </div>
+          </div>
+
+          <section id="formPanel" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <form id="initiativeForm" class="space-y-5" novalidate>
+              <div>
+                <label class="field-label" for="category">Категория</label>
+                <select id="category" name="category" class="form-input mt-2" required></select>
+              </div>
+
+              <div>
+                <label class="field-label" for="currentSituation">Как сейчас работает процесс?</label>
+                <textarea id="currentSituation" name="currentSituation" class="form-input mt-2 min-h-32" maxlength="1000" required></textarea>
+                <p class="field-help"><span data-counter-for="currentSituation">0</span>/1000 символов</p>
+              </div>
+
+              <div>
+                <label class="field-label" for="problem">Что именно вызывает сложности или потери времени?</label>
+                <textarea id="problem" name="problem" class="form-input mt-2 min-h-32" maxlength="1000" required></textarea>
+                <p class="field-help"><span data-counter-for="problem">0</span>/1000 символов</p>
+              </div>
+
+              <div>
+                <label class="field-label" for="proposedSolution">Что предлагается изменить?</label>
+                <textarea id="proposedSolution" name="proposedSolution" class="form-input mt-2 min-h-32" maxlength="1000" required></textarea>
+                <p class="field-help"><span data-counter-for="proposedSolution">0</span>/1000 символов</p>
+              </div>
+
+              <div>
+                <label class="field-label" for="expectedImpact">Какой результат ожидается после внедрения?</label>
+                <textarea id="expectedImpact" name="expectedImpact" class="form-input mt-2 min-h-24" maxlength="500" required></textarea>
+                <p class="field-help"><span data-counter-for="expectedImpact">0</span>/500 символов</p>
+              </div>
+
+              <div>
+                <label class="field-label" for="frequency">Частота возникновения</label>
+                <select id="frequency" name="frequency" class="form-input mt-2" required></select>
+              </div>
+
+              <div class="rounded-lg border border-slate-200 p-4">
+                <label class="flex items-start gap-3 font-bold text-slate-800">
+                  <input id="wantsContact" name="wantsContact" type="checkbox" class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-700">
+                  <span>Хочу участвовать в обсуждении инициативы</span>
+                </label>
+                <div id="contactWrap" class="mt-4 hidden">
+                  <label class="field-label" for="contact">Контакт для связи</label>
+                  <input id="contact" name="contact" class="form-input mt-2" maxlength="200" placeholder="Email, Telegram, телефон или другой контакт">
+                </div>
+              </div>
+
+              <div id="formError" class="hidden rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800" role="alert"></div>
+
+              <button id="submitButton" class="btn-primary w-full" type="submit">
+                Отправить инициативу
+              </button>
+            </form>
+          </section>
+
+          <section id="successPanel" class="hidden rounded-lg border border-emerald-200 bg-white p-6 shadow-sm">
+            <p class="text-sm font-black uppercase tracking-wide text-emerald-700">Спасибо.</p>
+            <h2 class="mt-2 text-3xl font-black text-slate-950">Ваша инициатива зарегистрирована.</h2>
+            <p class="mt-4 text-lg font-bold text-slate-700">ID: <span id="createdId"></span></p>
+            <button id="newIdeaButton" class="btn-primary mt-6" type="button">Подать еще одну инициативу</button>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

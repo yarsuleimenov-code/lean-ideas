@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Панель администратора</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="border-b border-slate-200 bg-white">
+        <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <a href="index.html" class="text-xl font-black text-slate-900">Lean Ideas Zaberman</a>
+          <nav class="flex flex-wrap gap-2 text-sm font-bold">
+            <a class="rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100" href="index.html">Подать инициативу</a>
+            <a class="rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100" href="board.html">Публичная доска</a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-7xl px-4 py-8">
+        <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p class="text-sm font-black uppercase tracking-wide text-emerald-700">Управление инициативами</p>
+            <h1 class="mt-2 text-3xl font-black text-slate-950">Панель администратора</h1>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="tokenButton" class="btn-secondary" type="button">ADMIN_TOKEN</button>
+            <button id="refreshButton" class="btn-secondary" type="button">Обновить</button>
+            <button id="exportButton" class="btn-primary" type="button">Экспорт в CSV</button>
+          </div>
+        </div>
+
+        <section id="kpiGrid" class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-7"></section>
+
+        <section class="mb-6 grid gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-5">
+          <div>
+            <label class="field-label" for="searchFilter">Поиск</label>
+            <input id="searchFilter" class="form-input mt-2" placeholder="ID, проблема, решение, владелец">
+          </div>
+          <div>
+            <label class="field-label" for="categoryFilter">Категория</label>
+            <select id="categoryFilter" class="form-input mt-2"></select>
+          </div>
+          <div>
+            <label class="field-label" for="statusFilter">Статус</label>
+            <select id="statusFilter" class="form-input mt-2"></select>
+          </div>
+          <div>
+            <label class="field-label" for="priorityFilter">Business Priority</label>
+            <select id="priorityFilter" class="form-input mt-2"></select>
+          </div>
+          <div>
+            <label class="field-label" for="dateFilter">Дата</label>
+            <input id="dateFilter" class="form-input mt-2" type="date">
+          </div>
+        </section>
+
+        <div id="adminMessage" class="hidden rounded-lg border border-slate-200 bg-white p-4 text-sm font-bold text-slate-700"></div>
+
+        <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div class="table-scroll">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+              <thead class="bg-slate-50 text-left text-xs font-black uppercase tracking-wide text-slate-600">
+                <tr>
+                  <th class="px-4 py-3">ID</th>
+                  <th class="px-4 py-3">Дата</th>
+                  <th class="px-4 py-3">Категория</th>
+                  <th class="px-4 py-3">Статус</th>
+                  <th class="px-4 py-3">Impact Score</th>
+                  <th class="px-4 py-3">Business Priority</th>
+                  <th class="px-4 py-3">Owner</th>
+                  <th class="px-4 py-3">Контакт указан</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="modal" class="fixed inset-0 z-50 hidden">
+      <div class="modal-backdrop absolute inset-0"></div>
+      <div class="relative mx-auto flex min-h-full max-w-5xl items-center px-4 py-6">
+        <section class="max-h-[92vh] w-full overflow-y-auto rounded-lg bg-white shadow-xl">
+          <div class="flex items-start justify-between gap-4 border-b border-slate-200 p-5">
+            <div>
+              <p class="text-sm font-black uppercase tracking-wide text-emerald-700">Детальная карточка</p>
+              <h2 id="modalTitle" class="mt-1 text-2xl font-black text-slate-950"></h2>
+            </div>
+            <button id="closeModalButton" class="btn-secondary" type="button">Закрыть</button>
+          </div>
+          <form id="detailForm" class="space-y-6 p-5">
+            <section id="detailReadOnly" class="grid gap-4 md:grid-cols-2"></section>
+
+            <section class="grid gap-4 md:grid-cols-2">
+              <div>
+                <label class="field-label" for="editStatus">Status</label>
+                <select id="editStatus" name="Status" class="form-input mt-2"></select>
+              </div>
+              <div>
+                <label class="field-label" for="editBusinessPriority">Business Priority</label>
+                <select id="editBusinessPriority" name="Business Priority" class="form-input mt-2"></select>
+              </div>
+              <div>
+                <label class="field-label" for="editOwner">Owner</label>
+                <input id="editOwner" name="Owner" class="form-input mt-2" maxlength="120">
+              </div>
+              <div>
+                <label class="field-label" for="editReviewDate">Review Date</label>
+                <input id="editReviewDate" name="Review Date" class="form-input mt-2" type="date">
+              </div>
+              <div>
+                <label class="field-label" for="editImplementedDate">Implemented Date</label>
+                <input id="editImplementedDate" name="Implemented Date" class="form-input mt-2" type="date">
+              </div>
+              <div>
+                <label class="field-label" for="editDuplicateOf">Duplicate Of</label>
+                <input id="editDuplicateOf" name="Duplicate Of" class="form-input mt-2" maxlength="60">
+              </div>
+              <div class="md:col-span-2">
+                <label class="field-label" for="editDecision">Decision</label>
+                <textarea id="editDecision" name="Decision" class="form-input mt-2 min-h-24" maxlength="1000"></textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="field-label" for="editImplementedResult">Implemented Result</label>
+                <textarea id="editImplementedResult" name="Implemented Result" class="form-input mt-2 min-h-24" maxlength="1000"></textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="field-label" for="editManagerComment">Manager Comment</label>
+                <textarea id="editManagerComment" name="Manager Comment" class="form-input mt-2 min-h-24" maxlength="1000"></textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="field-label" for="editRejectedReason">Rejected Reason</label>
+                <select id="editRejectedReason" name="Rejected Reason" class="form-input mt-2"></select>
+              </div>
+            </section>
+
+            <div id="modalError" class="hidden rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800"></div>
+
+            <div class="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-5">
+              <button id="saveButton" class="btn-primary" type="submit">Сохранить изменения</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <script type="module" src="./js/admin.js"></script>
+  </body>
+</html>
